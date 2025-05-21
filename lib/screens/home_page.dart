@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'profile_page.dart';
 import 'achievements_screen.dart';
 import 'tasks_screen.dart';
-import 'doubts_page.dart'; // Add this import
+import 'doubts_page.dart';
 import 'reports_zone_page.dart';
 import 'timetable_page.dart';
 import 'welcome_page.dart';
 import 'progress_page.dart';
 import 'practice_page.dart';
+import 'due_payments_screen.dart';
 
 class MyHomePage extends StatefulWidget {
   final VoidCallback? onThemeToggle;
@@ -254,6 +255,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     Colors.yellow[700]!,
                     () => const ProgressPage(),
                     'https://img.icons8.com/isometric/50/positive-dynamic.png'),
+                _buildFeatureCard(
+                    'Due Payments',
+                    Colors.teal,
+                    () => const DuePaymentsScreen(),
+                    'https://img.icons8.com/color/48/rupee.png'),
               ],
             ),
           ],
