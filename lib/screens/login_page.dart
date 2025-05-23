@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -10,6 +11,45 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
+  int _selectedRole = 0; // 0: Student, 1: Teacher, 2: Parent
+
+  Widget _buildRoleRadio(int index, String title) {
+    return ChoiceChip(
+      label: Text(
+        title,
+        style: TextStyle(
+          color: _selectedRole == index ? Colors.white : Colors.black,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      selected: _selectedRole == index,
+      selectedColor: const Color(0xFFFFB547),
+      backgroundColor: Colors.grey[200],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      onSelected: (selected) {
+        setState(() {
+          _selectedRole = index;
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Set the orientation to portrait only
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,14 +75,38 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 24),
                     const Text(
-                      'Welcome',
+                      'Login',
                       style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w500,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                         color: Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 18),
+                    // Login As
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Login As',
+                          style: TextStyle(fontSize: 15, color: Colors.black),
+                        ),
+                        const SizedBox(height: 8),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildRoleRadio(0, 'Student'),
+                              const SizedBox(width: 8),
+                              _buildRoleRadio(1, 'Teacher'),
+                              const SizedBox(width: 8),
+                              _buildRoleRadio(2, 'Parent'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
                     // Card-like login form
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -128,7 +192,18 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 48,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.pushReplacementNamed(context, '/payment');
+                                    // Navigate based on selected role
+                                    switch (_selectedRole) {
+                                      case 0: // Student
+                                        Navigator.pushReplacementNamed(context, '/payment');
+                                        break;
+                                      case 1: // Teacher
+                                        Navigator.pushReplacementNamed(context, '/teacher-dashboard');
+                                        break;
+                                      case 2: // Parent
+                                        Navigator.pushReplacementNamed(context, '/parent-dashboard');
+                                        break;
+                                    }
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFFFB547),

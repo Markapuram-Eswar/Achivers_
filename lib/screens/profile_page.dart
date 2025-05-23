@@ -91,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Alex Johnson',
+                    'Eswar Kumar',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -107,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Computer Science • Year 2',
+                      'SVCE • Computer Science • 4th Year ',
                       style: TextStyle(
                         color: Colors.blue.shade700,
                         fontWeight: FontWeight.w500,
