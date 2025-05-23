@@ -351,14 +351,14 @@ class ParentDashboardScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Paid: \$500',
+                    'Paid: ₹50,000',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,
                     ),
                   ),
                   Text(
-                    'Due: \$0',
+                    'Due: ₹0',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,

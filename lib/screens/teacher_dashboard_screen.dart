@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'take_attendance_screen.dart';
 
 class TeacherDashboardScreen extends StatelessWidget {
   const TeacherDashboardScreen({super.key});
@@ -31,7 +32,7 @@ class TeacherDashboardScreen extends StatelessWidget {
           children: [
             _buildWelcomeCard(),
             const SizedBox(height: 20),
-            _buildQuickActions(),
+            _buildQuickActions(context),
             const SizedBox(height: 20),
             _buildUpcomingClasses(),
             const SizedBox(height: 20),
@@ -55,7 +56,7 @@ class TeacherDashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Welcome back, Eswar Kumar',
+            'Welcome back, Mrs. Smith',
             style: TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -75,7 +76,7 @@ class TeacherDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(BuildContext context) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -87,55 +88,70 @@ class TeacherDashboardScreen extends StatelessWidget {
           'Take Attendance',
           Icons.how_to_reg,
           Colors.green[400]!,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const TakeAttendanceScreen(),
+              ),
+            );
+          },
         ),
         _buildActionCard(
           'Grade Assignments',
           Icons.assignment_turned_in,
           Colors.orange[400]!,
+          onTap: () {},
         ),
         _buildActionCard(
           'Schedule Class',
           Icons.calendar_today,
           Colors.purple[400]!,
+          onTap: () {},
         ),
         _buildActionCard(
-          'Send Notice',
-          Icons.announcement,
+          'Create Test',
+          Icons.add,
           Colors.red[400]!,
+          onTap: () {},
         ),
       ],
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey[300]!,
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+  Widget _buildActionCard(String title, IconData icon, Color color,
+      {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey[300]!,
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 40, color: color),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[800],
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -96,7 +96,13 @@ class McqPageState extends State<McqPage> {
     _selectedAnswers = List.filled(_questions.length, null);
   }
 
-  void _checkAnswers() {
+  bool get _allQuestionsAnswered {
+    return !_selectedAnswers.any((answer) => answer == null);
+  }
+
+  void _submitQuiz() {
+    if (!_allQuestionsAnswered) return;
+    
     setState(() {
       _hasSubmitted = true;
       _score = 0;
@@ -106,6 +112,13 @@ class McqPageState extends State<McqPage> {
           _score++;
         }
       }
+    });
+  }
+  
+  void _checkAnswers() {
+    // This will now only show the current question's answer
+    setState(() {
+      _hasSubmitted = true;
     });
   }
 
@@ -193,38 +206,80 @@ class McqPageState extends State<McqPage> {
                 ),
               ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed:
-                      _currentQuestionIndex > 0 ? _previousQuestion : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300],
-                    foregroundColor: Colors.black,
+            child: _hasSubmitted && _currentQuestionIndex == _questions.length - 1
+                ? Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Your Score: $_score/${_questions.length}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: widget.subjectData['color'],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Navigate back or show review options
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.subjectData['color'],
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                          ),
+                          child: const Text('Finish'),
+                        ),
+                      ],
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _currentQuestionIndex > 0 ? _previousQuestion : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.black,
+                        ),
+                        child: const Text('Previous'),
+                      ),
+                      if (_allQuestionsAnswered && !_hasSubmitted)
+                        ElevatedButton(
+                          onPressed: _submitQuiz,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.subjectData['color'],
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Submit Quiz'),
+                        )
+                      else
+                        ElevatedButton(
+                          onPressed: _hasSubmitted ? null : _checkAnswers,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.subjectData['color'],
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Check Answer'),
+                        ),
+                      ElevatedButton(
+                        onPressed: _currentQuestionIndex < _questions.length - 1
+                            ? _nextQuestion
+                            : _allQuestionsAnswered && !_hasSubmitted
+                                ? _submitQuiz
+                                : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: widget.subjectData['color'],
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(
+                          _currentQuestionIndex == _questions.length - 1
+                              ? 'Submit'
+                              : 'Next',
+                        ),
+                      ),
+                    ],
                   ),
-                  child: const Text('Previous'),
-                ),
-                ElevatedButton(
-                  onPressed: _hasSubmitted ? null : _checkAnswers,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.subjectData['color'],
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Check Answers'),
-                ),
-                ElevatedButton(
-                  onPressed: _currentQuestionIndex < _questions.length - 1
-                      ? _nextQuestion
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.subjectData['color'],
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Next'),
-                ),
-              ],
-            ),
           ),
         ],
       ),
