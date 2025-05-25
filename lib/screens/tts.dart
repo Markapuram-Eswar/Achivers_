@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:permission_handler/permission_handler.dart'; // Add permission_handler
+import 'package:permission_handler/permission_handler.dart';
 
 void main() => runApp(const MaterialApp(home: SimpleReadingTracker()));
 
@@ -8,16 +8,18 @@ class SimpleReadingTracker extends StatefulWidget {
   const SimpleReadingTracker({super.key});
 
   @override
-  SimpleReadingTrackerState createState() => SimpleReadingTrackerState();
+  _SimpleReadingTrackerState createState() => _SimpleReadingTrackerState();
 }
 
-class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
+class _SimpleReadingTrackerState extends State<SimpleReadingTracker> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   int _currentWordIndex = 0;
 
-  final String paragraph = 'Flutter is an open-source UI toolkit by Google';
+  final String paragraph =
+      "Flutter is an open-source UI toolkit by Google, Could you please clarify where you want to add more paragraphs? If you're referring to adding more instructional or descriptive paragraphs in your app's UI (e.g., Flutter & Dart), or if you want to add more sample text—like 80% of developers use Flutter—for speech-to-text reading!";
   List<String> _textWords = [];
+  List<String> _comparisonWords = [];
   final Set<int> _readIndices = {};
   final Set<int> _skippedIndices = {};
 
@@ -26,10 +28,9 @@ class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
     super.initState();
     _speech = stt.SpeechToText();
     _initializeText();
-    _checkPermissions(); // Check permissions on init
+    _checkPermissions();
   }
 
-  // Check and request microphone permissions
   Future<void> _checkPermissions() async {
     final status = await Permission.microphone.request();
     if (status != PermissionStatus.granted && mounted) {
@@ -39,15 +40,51 @@ class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
     }
   }
 
+  String _cleanTextForComparison(String text) {
+    return text
+        .toLowerCase()
+        .replaceAll('-', ' ')
+        .replaceAll("'", '')
+        .replaceAll(',', '')
+        .replaceAll('?', '')
+        .replaceAll('!', '')
+        .replaceAll(';', '')
+        .replaceAll(':', '')
+        .replaceAll('(', '')
+        .replaceAll(')', '')
+        .replaceAll('"', '')
+        .replaceAll('—', ' ')
+        .replaceAll('–', ' ')
+        .replaceAll('…', '')
+        .replaceAll('%', '')
+        .replaceAll('&', ' and ')
+        .replaceAll('/', ' ')
+        .replaceAll('*', '')
+        .replaceAll('_', ' ')
+        .replaceAll(RegExp(r'[^a-zA-Z0-9\s]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  List<String> _cleanTextForDisplay(String text) {
+    final words = text.split(' ').where((word) => word.isNotEmpty).toList();
+    return words;
+  }
+
+  String _capitalizeWord(String word) {
+    if (word.isEmpty) return word;
+    return word[0].toUpperCase() + word.substring(1);
+  }
+
   void _initializeText() {
-    _textWords = paragraph.split(' ').where((word) => word.isNotEmpty).toList();
+    _textWords = _cleanTextForDisplay(paragraph);
+    _comparisonWords = _textWords.map(_cleanTextForComparison).toList();
     _readIndices.clear();
     _skippedIndices.clear();
     _currentWordIndex = 0;
   }
 
   void _startListening() async {
-    // Ensure permissions are granted
     if (await Permission.microphone.status != PermissionStatus.granted) {
       await _checkPermissions();
       return;
@@ -57,7 +94,7 @@ class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
       onStatus: (status) {
         debugPrint('Speech status: $status');
         if (status == 'done' && _isListening && mounted) {
-          _startListening(); // Restart listening
+          _startListening();
         }
       },
       onError: (val) {
@@ -76,29 +113,22 @@ class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
       _speech.listen(
         onResult: (val) {
           if (!mounted) return;
-          final spokenWords = val.recognizedWords.toLowerCase().split(' ');
-          debugPrint('Recognized: $spokenWords'); // Debug spoken words
-          for (final spoken in spokenWords) {
-            if (_currentWordIndex >= _textWords.length) break;
-            final expected = _textWords[_currentWordIndex].toLowerCase();
-            if (spoken.contains(expected)) {
-              // More flexible matching
-              setState(() {
-                _readIndices.add(_currentWordIndex);
-                _currentWordIndex++;
-              });
-              break;
-            }
+          final rawSpokenText = val.recognizedWords;
+          final spokenText = _cleanTextForComparison(rawSpokenText);
+          debugPrint('Raw spoken: "$rawSpokenText"');
+          debugPrint('Cleaned spoken: "$spokenText"');
+
+          if (_currentWordIndex >= _comparisonWords.length) return;
+          final expected = _comparisonWords[_currentWordIndex];
+          debugPrint('Expected (cleaned): "$expected"');
+
+          if (spokenText.contains(expected)) {
+            setState(() {
+              _readIndices.add(_currentWordIndex);
+              _currentWordIndex++;
+            });
           }
-          // Notify user if no match
-          if (spokenWords.isNotEmpty &&
-              !spokenWords
-                  .contains(_textWords[_currentWordIndex].toLowerCase())) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text('Expected: ${_textWords[_currentWordIndex]}')),
-            );
-          }
+          // Removed SnackBar for expected word feedback
         },
       );
     } else if (mounted) {
@@ -135,66 +165,118 @@ class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reading Tracker'),
-        backgroundColor: Colors.deepPurple,
-        actions: [
-          IconButton(
-            icon: Icon(_isListening ? Icons.mic_off : Icons.mic),
-            onPressed: _isListening ? _stopListening : _startListening,
+        title: const Text(
+          'Reading Tracker',
+          style: TextStyle(
+            fontFamily: 'Georgia',
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
-          IconButton(
-            icon: const Icon(Icons.skip_next),
-            onPressed: _skipCurrentWord,
-            tooltip: 'Skip Word',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _reset,
-            tooltip: 'Reset',
-          ),
-        ],
+        ),
+        backgroundColor: Colors.brown[800],
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shadowColor: Colors.black54,
+      ),
+      backgroundColor: Colors.grey[100],
+      floatingActionButton: FloatingActionButton(
+        onPressed: _isListening ? _stopListening : _startListening,
+        backgroundColor: _isListening ? Colors.red[600] : Colors.green[600],
+        child: Icon(_isListening ? Icons.mic_off : Icons.mic),
+        tooltip: _isListening ? 'Stop Listening' : 'Start Listening',
       ),
       body: Column(
         children: [
-          LinearProgressIndicator(
-            value: _textWords.isEmpty
-                ? 0
-                : (_readIndices.length + _skippedIndices.length) /
-                    _textWords.length,
-            backgroundColor: Colors.grey[300],
-            color: Colors.green[600],
-            minHeight: 8,
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: LinearProgressIndicator(
+              value: _textWords.isEmpty
+                  ? 0
+                  : (_readIndices.length + _skippedIndices.length) /
+                      _textWords.length,
+              backgroundColor: Colors.grey[300],
+              color: Colors.brown[600],
+              minHeight: 6,
+            ),
           ),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 10,
-                children: _textWords.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final word = entry.value;
-                  final isCurrent = index == _currentWordIndex;
-                  final color = _skippedIndices.contains(index)
-                      ? Colors.red
-                      : _readIndices.contains(index)
-                          ? Colors.green
-                          : isCurrent
-                              ? Colors.blue
-                              : Colors.black;
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Card(
+                elevation: 2,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 10,
+                    children: _textWords.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final word = entry.value;
+                      final isCurrent = index == _currentWordIndex;
+                      final color = _skippedIndices.contains(index)
+                          ? Colors.red[600]!
+                          : _readIndices.contains(index)
+                              ? Colors.green[600]!
+                              : isCurrent
+                                  ? Colors.blue[600]!
+                                  : Colors.black87;
 
-                  return AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 200),
-                    style: TextStyle(
-                      fontSize: isCurrent ? 28 : 20,
-                      fontWeight:
-                          isCurrent ? FontWeight.bold : FontWeight.normal,
-                      color: color,
-                    ),
-                    child: Text('$word '),
-                  );
-                }).toList(),
+                      return AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 200),
+                        style: TextStyle(
+                          fontSize: isCurrent ? 22 : 18,
+                          fontWeight:
+                              isCurrent ? FontWeight.bold : FontWeight.normal,
+                          fontFamily: 'Georgia',
+                          color: color,
+                          height: 1.6,
+                        ),
+                        child: Text('${_capitalizeWord(word)} '),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
+            ),
+          ),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _skipCurrentWord,
+                  icon: const Icon(Icons.skip_next),
+                  label: const Text('Skip Word'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.brown[600],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _reset,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reset'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.brown[600],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -205,7 +287,7 @@ class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
   @override
   void dispose() {
     _stopListening();
-    _speech.cancel(); // More robust cleanup
+    _speech.cancel();
     super.dispose();
   }
 }

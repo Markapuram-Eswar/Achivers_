@@ -27,6 +27,17 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
   };
 
   DateTime _selectedDate = DateTime.now();
+  String? _selectedClass;
+  String? _selectedSection;
+
+  final List<String> _classes = [
+    'Grade 6',
+    'Grade 7',
+    'Grade 8',
+    'Grade 9',
+    'Grade 10'
+  ];
+  final List<String> _sections = ['A', 'B', 'C', 'D'];
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -76,52 +87,121 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
       ),
       body: Column(
         children: [
+          // Filter section with improved layout
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.white,
-            child: Row(
+            child: Column(
               children: [
-                GestureDetector(
-                  onTap: () => _selectDate(context),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                // First row: Class and Section dropdowns
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          hint: const Text('Select Class'),
+                          value: _selectedClass,
+                          items: _classes
+                              .map((grade) => DropdownMenuItem(
+                                    value: grade,
+                                    child: Text(grade),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedClass = value;
+                            });
+                          },
+                        ),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(8),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          underline: const SizedBox(),
+                          hint: const Text('Select Section'),
+                          value: _selectedSection,
+                          items: _sections
+                              .map((section) => DropdownMenuItem(
+                                    value: section,
+                                    child: Text(section),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedSection = value;
+                            });
+                          },
+                        ),
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.calendar_today,
-                            size: 16, color: Colors.blue[700]),
-                        const SizedBox(width: 8),
-                        Text(
-                          'February ${_selectedDate.day}, ${_selectedDate.year}',
-                          style: TextStyle(
-                            color: Colors.blue[700],
-                            fontWeight: FontWeight.w500,
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Second row: Date picker and student count
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _selectDate(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'February ${_selectedDate.day}, ${_selectedDate.year}',
+                              ),
+                              Icon(Icons.calendar_today,
+                                  size: 16, color: Colors.blue[700]),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '${_attendance.length} Students',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                    const SizedBox(width: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[700],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${_attendance.length} Students',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+
+          // Mark All Present Switch
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: Colors.white,
+            margin: const EdgeInsets.only(top: 1), // Small divider
             child: Row(
               children: [
                 Text(
@@ -146,6 +226,8 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
               ],
             ),
           ),
+
+          // Student List
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -169,11 +251,13 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                       vertical: 8,
                     ),
                     leading: CircleAvatar(
-                      backgroundColor: Colors.grey[100],
+                      backgroundColor:
+                          isPresent ? Colors.green[50] : Colors.grey[100],
                       child: Text(
                         name.split(' ')[0][0],
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color:
+                              isPresent ? Colors.green[700] : Colors.grey[600],
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -248,18 +332,31 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
               },
             ),
           ),
+
+          // Submit Button
           Container(
             padding: const EdgeInsets.all(16),
             color: Colors.white,
             child: SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
+                icon:
+                    const Icon(Icons.check_circle_outline, color: Colors.white),
+                label: const Text(
+                  'Submit Attendance',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[700],
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 0,
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -270,14 +367,6 @@ class _TakeAttendanceScreenState extends State<TakeAttendanceScreen> {
                   );
                   Navigator.pop(context);
                 },
-                child: const Text(
-                  'Submit Attendance',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
               ),
             ),
           ),

@@ -3,6 +3,13 @@ import 'take_attendance_screen.dart';
 import 'grade_assignments_screen.dart';
 import 'schedule_class_screen.dart';
 import 'create_test_screen.dart';
+import 'teacher_profile_page.dart';
+
+void main() {
+  runApp(const MaterialApp(
+    home: TeacherDashboardScreen(),
+  ));
+}
 
 class TeacherDashboardScreen extends StatelessWidget {
   const TeacherDashboardScreen({super.key});
@@ -11,6 +18,7 @@ class TeacherDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
+      // Update the profile icon action in the AppBar
       appBar: AppBar(
         backgroundColor: Colors.blue[900],
         title: const Text(
@@ -24,7 +32,14 @@ class TeacherDashboardScreen extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TeacherProfilePage(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -36,6 +51,8 @@ class TeacherDashboardScreen extends StatelessWidget {
             _buildWelcomeCard(),
             const SizedBox(height: 20),
             _buildQuickActions(context),
+            const SizedBox(height: 20),
+            _buildLeaveAppointments(context), // Add this new section
             const SizedBox(height: 20),
             _buildUpcomingClasses(),
             const SizedBox(height: 20),
@@ -108,7 +125,7 @@ class TeacherDashboardScreen extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const GradeAssignmentsScreen(),
+                builder: (context) => const ClassAssignmentsScreen(),
               ),
             );
           },
@@ -298,6 +315,159 @@ class TeacherDashboardScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  // Add this new method to build the leave appointments section
+  Widget _buildLeaveAppointments(BuildContext context) {
+    // Sample leave appointment data - in a real app, this would come from a database
+    final List<Map<String, dynamic>> leaveAppointments = [
+      {
+        'studentName': 'Rahul Kumar',
+        'class': '8-A',
+        'startDate': '15/05/2023',
+        'endDate': '18/05/2023',
+        'reason': 'Family function',
+        'status': 'Pending'
+      },
+      {
+        'studentName': 'Priya Sharma',
+        'class': '10-A',
+        'startDate': '20/05/2023',
+        'endDate': '22/05/2023',
+        'reason': 'Medical appointment',
+        'status': 'Pending'
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Leave Appointments',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                // View all leave appointments
+              },
+              child: Text(
+                'View All',
+                style: TextStyle(color: Colors.blue[700]),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        if (leaveAppointments.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(
+                  'No pending leave appointments',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: leaveAppointments.length > 2 ? 2 : leaveAppointments.length, // Show only 2 items in dashboard
+            itemBuilder: (context, index) {
+              final appointment = leaveAppointments[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue.shade100,
+                    child: Text(
+                      appointment['studentName'][0],
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    appointment['studentName'],
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                    'Class ${appointment['class']} • ${appointment['startDate']} to ${appointment['endDate']}',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      appointment['status'],
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
+                          Text(
+                            'Reason: ${appointment['reason']}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              OutlinedButton(
+                                onPressed: () {
+                                  // Handle rejection logic
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  side: const BorderSide(color: Colors.red),
+                                ),
+                                child: const Text('Reject'),
+                              ),
+                              const SizedBox(width: 12),
+                              ElevatedButton(
+                                onPressed: () {
+                                  // Handle approval logic
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Approve'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+      ],
     );
   }
 }
