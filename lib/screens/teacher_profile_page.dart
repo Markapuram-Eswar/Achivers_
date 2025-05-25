@@ -271,6 +271,45 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
         _buildMenuItem('Teaching Resources', Icons.book),
         _buildMenuItem('Settings', Icons.settings),
         _buildMenuItem('Help & Support', Icons.help_outline),
+        const SizedBox(height: 10),
+        _buildMenuItem(
+          'Logout',
+          Icons.logout,
+          color: Colors.red,
+          onTap: () {
+            // Show confirmation dialog
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: <Widget>[
+                    TextButton(
+                      child: const Text('Cancel'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    TextButton(
+                      child: const Text('Logout',
+                          style: TextStyle(color: Colors.red)),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        // Navigate to login screen
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/login',
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ],
     );
   }
@@ -323,10 +362,8 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
                   ),
                 )
               else
-                ...leaveAppointments
-                    .map((appointment) =>
-                        _buildLeaveAppointmentTile(appointment))
-                    .toList(),
+                ...leaveAppointments.map(
+                    (appointment) => _buildLeaveAppointmentTile(appointment)),
             ],
           ),
         ),
@@ -484,7 +521,8 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
     );
   }
 
-  Widget _buildMenuItem(String title, IconData icon, {VoidCallback? onTap}) {
+  Widget _buildMenuItem(String title, IconData icon,
+      {VoidCallback? onTap, Color? color}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -507,14 +545,14 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
             color: Colors.blue.shade50,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Colors.blue.shade700),
+          child: Icon(icon, color: color ?? Colors.blue.shade700),
         ),
         title: Text(
           title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
+          style: TextStyle(
+            color: color ?? Colors.black87,
+            fontSize: 14,
+            fontWeight: color != null ? FontWeight.w500 : null,
           ),
         ),
         trailing: Icon(Icons.arrow_forward_ios,

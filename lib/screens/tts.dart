@@ -8,10 +8,10 @@ class SimpleReadingTracker extends StatefulWidget {
   const SimpleReadingTracker({super.key});
 
   @override
-  _SimpleReadingTrackerState createState() => _SimpleReadingTrackerState();
+  SimpleReadingTrackerState createState() => SimpleReadingTrackerState();
 }
 
-class _SimpleReadingTrackerState extends State<SimpleReadingTracker> {
+class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   int _currentWordIndex = 0;
@@ -182,8 +182,8 @@ class _SimpleReadingTrackerState extends State<SimpleReadingTracker> {
       floatingActionButton: FloatingActionButton(
         onPressed: _isListening ? _stopListening : _startListening,
         backgroundColor: _isListening ? Colors.red[600] : Colors.green[600],
-        child: Icon(_isListening ? Icons.mic_off : Icons.mic),
         tooltip: _isListening ? 'Stop Listening' : 'Start Listening',
+        child: Icon(_isListening ? Icons.mic_off : Icons.mic),
       ),
       body: Column(
         children: [

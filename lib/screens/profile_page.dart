@@ -2,6 +2,7 @@ import 'package:achiver_app/screens/tts.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'videos_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -133,6 +134,53 @@ class _ProfilePageState extends State<ProfilePage> {
                           builder: (context) => const SimpleReadingTracker()),
                     );
                   }),
+                  _buildMenuItem('Videos', Icons.video_library, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const VideoFlowScreen()),
+                    );
+                  }),
+                  const SizedBox(height: 20),
+                  _buildMenuItem(
+                    'Logout',
+                    Icons.logout,
+                    color: Colors.red,
+                    onTap: () {
+                      // Show confirmation dialog
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Logout'),
+                            content:
+                                const Text('Are you sure you want to logout?'),
+                            actions: <Widget>[
+                              TextButton(
+                                child: const Text('Cancel'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                              TextButton(
+                                child: const Text('Logout',
+                                    style: TextStyle(color: Colors.red)),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  // Navigate to login screen
+                                  Navigator.pushNamedAndRemoveUntil(
+                                    context,
+                                    '/login',
+                                    (route) => false,
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -142,7 +190,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildMenuItem(String title, IconData icon, {VoidCallback? onTap}) {
+  Widget _buildMenuItem(String title, IconData icon,
+      {VoidCallback? onTap, Color? color}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -165,14 +214,14 @@ class _ProfilePageState extends State<ProfilePage> {
             color: Colors.blue.shade50,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: Colors.blue.shade700),
+          child: Icon(icon, color: color ?? Colors.blue.shade700),
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            color: color ?? Colors.black87,
           ),
         ),
         trailing: Icon(Icons.arrow_forward_ios,

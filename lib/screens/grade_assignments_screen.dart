@@ -69,15 +69,15 @@ class ClassAssignmentsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
-                Row(
+                const Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.class_,
                       color: Colors.white,
                       size: 24,
                     ),
-                    const SizedBox(width: 10),
-                    const Text(
+                    SizedBox(width: 10),
+                    Text(
                       'Select Class & Assignment',
                       style: TextStyle(
                         fontSize: 18,
@@ -92,7 +92,7 @@ class ClassAssignmentsScreen extends StatelessWidget {
                   'Choose a class and assignment to grade student submissions',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -403,8 +403,8 @@ class _GradeAssignmentsScreenState extends State<GradeAssignmentsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
                       color: isGraded
-                          ? Colors.green.withOpacity(0.5)
-                          : Colors.grey.withOpacity(0.2),
+                          ? Colors.green.withValues(alpha: 0.5)
+                          : Colors.grey.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -447,7 +447,7 @@ class _GradeAssignmentsScreenState extends State<GradeAssignmentsScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 isGraded
-                                    ? 'Graded: ${grade}/100'
+                                    ? 'Graded: $grade/100'
                                     : 'Not graded yet',
                                 style: TextStyle(
                                   color: isGraded
@@ -523,7 +523,7 @@ class _GradeAssignmentsScreenState extends State<GradeAssignmentsScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -585,7 +585,7 @@ class _GradeAssignmentsScreenState extends State<GradeAssignmentsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'leave_application_screen.dart';
 import 'contact_teacher_screen.dart';
-import 'view_homework_screen.dart';
+import 'parent_profile_page.dart';
+import 'progress_page.dart';
 
 class ParentDashboardScreen extends StatelessWidget {
   const ParentDashboardScreen({super.key});
@@ -23,7 +24,14 @@ class ParentDashboardScreen extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ParentProfilePage(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -136,13 +144,13 @@ class ParentDashboardScreen extends StatelessWidget {
             const SizedBox(width: 15),
             Expanded(
               child: _buildActionButton(
-                'View\nHomework',
-                Icons.assignment,
+                'Progress',
+                Icons.bar_chart,
                 Colors.purple[400]!,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const ViewHomeworkScreen(),
+                    builder: (context) => const ProgressPage(),
                   ),
                 ),
               ),
