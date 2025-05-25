@@ -1,9 +1,45 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Camera permission -->
     <uses-permission android:name="android.permission.CAMERA" />
     
+    <!-- Audio recording permission -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    
+    <!-- External storage permissions -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="32" />
+    
     <!-- Internet permission -->
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Bluetooth permissions -->
+    <!-- Required for all Bluetooth operations -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <!-- Required for Bluetooth admin operations -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <!-- Required for Bluetooth scanning on Android 12+ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" 
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <!-- Required for Bluetooth connection on Android 12+ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" 
+        tools:targetApi="s" />
+    <!-- Required for Bluetooth advertising on Android 12+ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" 
+        tools:targetApi="s" />
+    <!-- Location permission required for Bluetooth scanning on Android 10-11 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" 
+        android:maxSdkVersion="30" />
+    <!-- Coarse location can be used as a fallback for Android 10-11 -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" 
+        android:maxSdkVersion="30" />
+    <!-- Bluetooth privilege allows access to the list of Bluetooth devices 
+         that are already paired to the device -->
+    <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" 
+        tools:ignore="ProtectedPermissions" />
     
     <!-- Post notifications permission (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'leave_application_screen.dart';
+import 'contact_teacher_screen.dart';
+import 'view_homework_screen.dart';
 
 class ParentDashboardScreen extends StatelessWidget {
   const ParentDashboardScreen({super.key});
@@ -31,7 +34,7 @@ class ParentDashboardScreen extends StatelessWidget {
           children: [
             _buildChildInfoCard(),
             const SizedBox(height: 20),
-            _buildQuickActions(),
+            _buildQuickActions(context),
             const SizedBox(height: 20),
             _buildAttendanceAndGrades(),
             const SizedBox(height: 20),
@@ -89,7 +92,7 @@ class ParentDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -108,6 +111,12 @@ class ParentDashboardScreen extends StatelessWidget {
                 'Leave\nApplication',
                 Icons.event_busy,
                 Colors.orange[400]!,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LeaveApplicationScreen(),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 15),
@@ -116,6 +125,12 @@ class ParentDashboardScreen extends StatelessWidget {
                 'Contact\nTeacher',
                 Icons.message,
                 Colors.green[400]!,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ContactTeacherScreen(),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 15),
@@ -124,6 +139,12 @@ class ParentDashboardScreen extends StatelessWidget {
                 'View\nHomework',
                 Icons.assignment,
                 Colors.purple[400]!,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ViewHomeworkScreen(),
+                  ),
+                ),
               ),
             ),
           ],
@@ -132,34 +153,42 @@ class ParentDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(String title, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey[300]!,
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 30),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+  Widget _buildActionButton(
+    String title,
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey[300]!,
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[800],
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -351,7 +380,7 @@ class ParentDashboardScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Paid: ₹50,000',
+                    'Paid: ₹25,000',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,

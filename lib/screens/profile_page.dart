@@ -1,3 +1,4 @@
+import 'package:achiver_app/screens/tts.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -125,6 +126,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildMenuItem('Edit Account', Icons.edit),
                   _buildMenuItem('Settings and Privacy', Icons.settings),
                   _buildMenuItem('Help', Icons.help_outline),
+                  _buildMenuItem('Text to Speech', Icons.volume_up, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const SimpleReadingTracker()),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -134,7 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildMenuItem(String title, IconData icon) {
+  Widget _buildMenuItem(String title, IconData icon, {VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -149,6 +157,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
       child: ListTile(
+        onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),

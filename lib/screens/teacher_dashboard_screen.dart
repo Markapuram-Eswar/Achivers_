@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'take_attendance_screen.dart';
+import 'grade_assignments_screen.dart';
+import 'schedule_class_screen.dart';
+import 'create_test_screen.dart';
 
 class TeacherDashboardScreen extends StatelessWidget {
   const TeacherDashboardScreen({super.key});
@@ -56,7 +59,7 @@ class TeacherDashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Welcome back, Mrs. Smith',
+            'Welcome back, Mrs. Lakshmi',
             style: TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -101,19 +104,40 @@ class TeacherDashboardScreen extends StatelessWidget {
           'Grade Assignments',
           Icons.assignment_turned_in,
           Colors.orange[400]!,
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const GradeAssignmentsScreen(),
+              ),
+            );
+          },
         ),
         _buildActionCard(
           'Schedule Class',
           Icons.calendar_today,
           Colors.purple[400]!,
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ScheduleClassScreen(),
+              ),
+            );
+          },
         ),
         _buildActionCard(
           'Create Test',
-          Icons.add,
+          Icons.quiz,
           Colors.red[400]!,
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CreateTestScreen(),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -157,6 +181,22 @@ class TeacherDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildUpcomingClasses() {
+    final classes = [
+      {
+        'subject': 'Mathematics',
+        'class': '10-A',
+        'time': '9:00 AM',
+        'room': '101'
+      },
+      {'subject': 'Physics', 'class': '9-B', 'time': '10:30 AM', 'room': '102'},
+      {
+        'subject': 'Chemistry',
+        'class': '11-A',
+        'time': '12:00 PM',
+        'room': '103'
+      },
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -171,8 +211,9 @@ class TeacherDashboardScreen extends StatelessWidget {
         ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3,
+          itemCount: classes.length,
           itemBuilder: (context, index) {
+            final classInfo = classes[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
@@ -184,8 +225,9 @@ class TeacherDashboardScreen extends StatelessWidget {
                   ),
                   child: Icon(Icons.class_, color: Colors.blue[700]),
                 ),
-                title: Text('Class ${index + 1}'),
-                subtitle: Text('Room 10${index + 1} • 9:${index}0 AM'),
+                title: Text('${classInfo['subject']} - ${classInfo['class']}'),
+                subtitle:
+                    Text('Room ${classInfo['room']} • ${classInfo['time']}'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               ),
             );
