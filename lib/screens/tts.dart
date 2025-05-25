@@ -1,173 +1,211 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'dart:async';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart'; // Add permission_handler
 
-void main() => runApp(VideoSequenceApp());
+void main() => runApp(const MaterialApp(home: SimpleReadingTracker()));
 
-class VideoSequenceApp extends StatelessWidget {
+class SimpleReadingTracker extends StatefulWidget {
+  const SimpleReadingTracker({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Video Flow App',
-      theme: ThemeData.dark(),
-      home: VideoFlowScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
+  SimpleReadingTrackerState createState() => SimpleReadingTrackerState();
 }
 
-class VideoFlowScreen extends StatefulWidget {
-  @override
-  _VideoFlowScreenState createState() => _VideoFlowScreenState();
-}
+class SimpleReadingTrackerState extends State<SimpleReadingTracker> {
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  int _currentWordIndex = 0;
 
-class _VideoFlowScreenState extends State<VideoFlowScreen> {
-  VideoPlayerController? _controller;
-  int correctFlagIndex = 0; // index of correct button (door)
-  int correctSelections = 0;
-  int wrongOrTimeoutCount = 0;
-  final int maxCorrectSelections = 3;
-  final int maxWrongOrTimeouts = 3;
-  Timer? _buttonTimer;
-  bool _terminated = false;
+  final String paragraph = 'Flutter is an open-source UI toolkit by Google';
+  List<String> _textWords = [];
+  final Set<int> _readIndices = {};
+  final Set<int> _skippedIndices = {};
 
   @override
   void initState() {
     super.initState();
-    _playVideo('assets/videos/park_theme.mp4', onEnd: () {
-      _playVideo('assets/videos/park_theme.mp4', onEnd: _showButtonPage);
-    });
+    _speech = stt.SpeechToText();
+    _initializeText();
+    _checkPermissions(); // Check permissions on init
   }
 
-  void _playVideo(String path, {required VoidCallback onEnd}) async {
-    _disposeController();
-    // Add a short delay before initializing the new controller
-    await Future.delayed(Duration(milliseconds: 200));
-    _controller = VideoPlayerController.asset(path)
-      ..initialize().then((_) {
-        setState(() {});
-        _controller!.play();
-        _controller!.addListener(() {
-          if (_controller!.value.position >= _controller!.value.duration &&
-              !_controller!.value.isPlaying) {
-            _controller!.removeListener(() {});
-            onEnd();
-          }
-        });
-      });
+  // Check and request microphone permissions
+  Future<void> _checkPermissions() async {
+    final status = await Permission.microphone.request();
+    if (status != PermissionStatus.granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Microphone permission is required')),
+      );
+    }
   }
 
-  void _showButtonPage() {
-    if (_terminated) return;
+  void _initializeText() {
+    _textWords = paragraph.split(' ').where((word) => word.isNotEmpty).toList();
+    _readIndices.clear();
+    _skippedIndices.clear();
+    _currentWordIndex = 0;
+  }
 
-    _buttonTimer = Timer(Duration(seconds: 10), () {
-      Navigator.of(context).pop();
-      _handleTimeout();
-    });
+  void _startListening() async {
+    // Ensure permissions are granted
+    if (await Permission.microphone.status != PermissionStatus.granted) {
+      await _checkPermissions();
+      return;
+    }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return AlertDialog(
-          backgroundColor: Colors.grey[850],
-          title: Text('Choose a Door'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(4, (index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    _buttonTimer?.cancel();
-                    Navigator.of(context).pop();
-                    _handleButtonSelection(index);
-                  },
-                  child: Text('Door ${index + 1}'),
-                ),
-              );
-            }),
-          ),
-        );
+    bool available = await _speech.initialize(
+      onStatus: (status) {
+        debugPrint('Speech status: $status');
+        if (status == 'done' && _isListening && mounted) {
+          _startListening(); // Restart listening
+        }
+      },
+      onError: (val) {
+        debugPrint('Speech error: $val');
+        if (mounted) {
+          setState(() => _isListening = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Speech error: $val')),
+          );
+        }
       },
     );
+
+    if (available && mounted) {
+      setState(() => _isListening = true);
+      _speech.listen(
+        onResult: (val) {
+          if (!mounted) return;
+          final spokenWords = val.recognizedWords.toLowerCase().split(' ');
+          debugPrint('Recognized: $spokenWords'); // Debug spoken words
+          for (final spoken in spokenWords) {
+            if (_currentWordIndex >= _textWords.length) break;
+            final expected = _textWords[_currentWordIndex].toLowerCase();
+            if (spoken.contains(expected)) {
+              // More flexible matching
+              setState(() {
+                _readIndices.add(_currentWordIndex);
+                _currentWordIndex++;
+              });
+              break;
+            }
+          }
+          // Notify user if no match
+          if (spokenWords.isNotEmpty &&
+              !spokenWords
+                  .contains(_textWords[_currentWordIndex].toLowerCase())) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text('Expected: ${_textWords[_currentWordIndex]}')),
+            );
+          }
+        },
+      );
+    } else if (mounted) {
+      setState(() => _isListening = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Failed to initialize speech recognition')),
+      );
+    }
   }
 
-  void _handleButtonSelection(int index) {
-    if (_terminated) return;
-
-    _playVideo('assets/video${index + 3}.mp4', onEnd: () {
-      if (index == correctFlagIndex) {
-        correctSelections++;
-        if (correctSelections >= maxCorrectSelections) {
-          _terminated = true;
-          _playVideo('assets/videos/park_theme.mp4', onEnd: () {});
-        } else {
-          _playVideo('assets/videos/park_theme.mp4', onEnd: _showButtonPage);
-        }
-      } else {
-        wrongOrTimeoutCount++;
-        if (wrongOrTimeoutCount >= maxWrongOrTimeouts) {
-          _terminated = true;
-          // Terminate immediately without playing video9
-        } else {
-          _playVideo('assets/videos/park_theme.mp4', onEnd: () {
-            _playVideo('assets/videos/park_theme.mp4', onEnd: _showButtonPage);
-          });
-        }
-      }
-    });
+  void _stopListening() {
+    if (_isListening) {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
   }
 
-  void _handleTimeout() {
-    if (_terminated) return;
-
-    wrongOrTimeoutCount++;
-    if (wrongOrTimeoutCount >= maxWrongOrTimeouts) {
-      _terminated = true;
-      // Terminate immediately without playing video9
-    } else {
-      _playVideo('assets/videos/park_theme.mp4', onEnd: () {
-        _playVideo('assets/videos/park_theme.mp4', onEnd: _showButtonPage);
+  void _skipCurrentWord() {
+    if (_currentWordIndex < _textWords.length) {
+      setState(() {
+        _skippedIndices.add(_currentWordIndex);
+        _currentWordIndex++;
       });
     }
   }
 
-  void _disposeController() {
-    _controller?.pause();
-    _controller?.dispose();
-    _controller = null;
-  }
-
-  @override
-  void dispose() {
-    _disposeController();
-    _buttonTimer?.cancel();
-    super.dispose();
+  void _reset() {
+    _stopListening();
+    setState(() => _initializeText());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Video Flow')),
-      body: Center(
-        child: _controller != null && _controller!.value.isInitialized
-            ? Container(
-                margin: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.indigo, width: 2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: AspectRatio(
-                  aspectRatio: _controller!.value.aspectRatio,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: VideoPlayer(_controller!),
-                  ),
-                ),
-              )
-            : CircularProgressIndicator(),
+      appBar: AppBar(
+        title: const Text('Reading Tracker'),
+        backgroundColor: Colors.deepPurple,
+        actions: [
+          IconButton(
+            icon: Icon(_isListening ? Icons.mic_off : Icons.mic),
+            onPressed: _isListening ? _stopListening : _startListening,
+          ),
+          IconButton(
+            icon: const Icon(Icons.skip_next),
+            onPressed: _skipCurrentWord,
+            tooltip: 'Skip Word',
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _reset,
+            tooltip: 'Reset',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          LinearProgressIndicator(
+            value: _textWords.isEmpty
+                ? 0
+                : (_readIndices.length + _skippedIndices.length) /
+                    _textWords.length,
+            backgroundColor: Colors.grey[300],
+            color: Colors.green[600],
+            minHeight: 8,
+          ),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 10,
+                children: _textWords.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final word = entry.value;
+                  final isCurrent = index == _currentWordIndex;
+                  final color = _skippedIndices.contains(index)
+                      ? Colors.red
+                      : _readIndices.contains(index)
+                          ? Colors.green
+                          : isCurrent
+                              ? Colors.blue
+                              : Colors.black;
+
+                  return AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: TextStyle(
+                      fontSize: isCurrent ? 28 : 20,
+                      fontWeight:
+                          isCurrent ? FontWeight.bold : FontWeight.normal,
+                      color: color,
+                    ),
+                    child: Text('$word '),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    _speech.cancel(); // More robust cleanup
+    super.dispose();
   }
 }
