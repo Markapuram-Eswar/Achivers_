@@ -1,24 +1,20 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GeminiService {
   static final GeminiService _instance = GeminiService._internal();
   late final GenerativeModel _model;
+  static const String _apiKey = 'AIzaSyAgS60oWZtnBaxLsUXLKtgvmurfD4NsjSY';
 
   factory GeminiService() {
     return _instance;
   }
 
   GeminiService._internal() {
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY not found in .env file');
-    }
     _model = GenerativeModel(
-      model: 'gemini-pro',
-      apiKey: apiKey,
+      model: 'gemini-1.5-pro',
+      apiKey: _apiKey,
       generationConfig: GenerationConfig(
         temperature: 0.5,
         topP: 0.95,
@@ -59,12 +55,14 @@ class GeminiService {
         Content.text(systemPrompt),
         Content.text('Student: $prompt\n\nStudyMate: '),
       ];
-      
+
       final response = await _model.generateContent(content);
-      final responseText = response.text?.trim() ?? 'Sorry, I could not generate a response.';
-      
+      final responseText =
+          response.text?.trim() ?? 'Sorry, I could not generate a response.';
+
       // Remove any potential system prompt leakage
-      return responseText.replaceAll(RegExp(r'^StudyMate:\s*', multiLine: true), '');
+      return responseText.replaceAll(
+          RegExp(r'^StudyMate:\s*', multiLine: true), '');
     } catch (e) {
       if (kDebugMode) {
         print('Error in generateResponse: $e');
@@ -77,7 +75,7 @@ class GeminiService {
     try {
       final systemPrompt = _getSystemPrompt();
       final imageBytes = await File(imagePath).readAsBytes();
-      
+
       // First, analyze the image content
       final content = [
         Content.multi([
@@ -85,12 +83,12 @@ class GeminiService {
           DataPart('image/jpeg', imageBytes),
         ])
       ];
-      
+
       final model = GenerativeModel(
-        model: 'gemini-pro-vision',
-        apiKey: dotenv.env['GEMINI_API_KEY']!,
+        model: 'gemini-1.5-pro',
+        apiKey: _apiKey,
         generationConfig: GenerationConfig(
-          temperature: 0.3,  // Lower temperature for more factual responses
+          temperature: 0.3, // Lower temperature for more factual responses
           topP: 0.9,
           topK: 32,
           maxOutputTokens: 2048,
@@ -102,9 +100,10 @@ class GeminiService {
           SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.high),
         ],
       );
-      
+
       final response = await model.generateContent(content);
-      final responseText = response.text?.trim() ?? 'Sorry, I could not analyze the image.';
+      final responseText =
+          response.text?.trim() ?? 'Sorry, I could not analyze the image.';
       return responseText;
     } catch (e) {
       return 'Error: ${e.toString()}';
