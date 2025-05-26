@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,11 +38,36 @@ class SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to LoginPage after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    // Check if user is already logged in
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final isLoggedIn = await AuthService.isLoggedIn();
+    if (!mounted) return;
+    
+    if (isLoggedIn) {
+      final userType = await AuthService.getUserType();
       if (!mounted) return;
+      
+      // Navigate to the appropriate dashboard based on user type
+      switch (userType) {
+        case 'student':
+          Navigator.pushReplacementNamed(context, '/welcome_page');
+          break;
+        case 'teacher':
+          Navigator.pushReplacementNamed(context, '/teacher-dashboard');
+          break;
+        case 'parent':
+          Navigator.pushReplacementNamed(context, '/parent-dashboard');
+          break;
+        default:
+          Navigator.pushReplacementNamed(context, '/login');
+      }
+    } else {
+      // No user logged in, go to login page
       Navigator.pushReplacementNamed(context, '/login');
-    });
+    }
   }
 
   @override

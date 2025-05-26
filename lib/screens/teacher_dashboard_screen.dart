@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../services/auth_service.dart';
 import 'take_attendance_screen.dart';
 import 'grade_assignments_screen.dart';
 import 'schedule_class_screen.dart';
 import 'create_test_screen.dart';
 import 'teacher_profile_page.dart';
+import 'login_page.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -40,6 +43,33 @@ class TeacherDashboardScreen extends StatelessWidget {
                 ),
               );
             },
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onSelected: (value) async {
+              if (value == 'logout') {
+                await AuthService.logout();
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+                Fluttertoast.showToast(msg: 'Logged out successfully');
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.black54),
+                    SizedBox(width: 8),
+                    Text('Logout'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
