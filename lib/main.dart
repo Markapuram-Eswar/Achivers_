@@ -1,3 +1,5 @@
+import 'package:achiver_app/firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_page.dart';
@@ -7,7 +9,23 @@ import 'screens/notification_page.dart';
 import 'screens/teacher_dashboard_screen.dart';
 import 'screens/parent_dashboard_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // Logging the error but continuing app execution as Firebase is not critical
+    debugPrint('Firebase initialization error: $e');
+  }
+
+  // Add error boundary
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+  };
+
   runApp(const MyApp());
 }
 

@@ -84,6 +84,10 @@ class SplashScreenState extends State<SplashScreen>
                       'assets/images/logo.png',
                       width: 200,
                       height: 200,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.error,
+                            size: 100, color: Colors.red);
+                      },
                     ),
                   ),
                 ),

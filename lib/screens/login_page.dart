@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../services/auth_service.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -10,7 +12,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  bool _obscurePassword = true;
+  final _formKey = GlobalKey<FormState>();
+  final _idController = TextEditingController();
+  bool _isLoading = false;
   int _selectedRole = 0; // 0: Student, 1: Teacher, 2: Parent
 
   Widget _buildRoleRadio(int index, String title) {
@@ -38,7 +42,94 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
+    _idController.dispose();
     super.dispose();
+  }
+  
+  String _getRoleName() {
+    switch (_selectedRole) {
+      case 0:
+        return 'Student';
+      case 1:
+        return 'Teacher';
+      case 2:
+        return 'Parent';
+      default:
+        return '';
+    }
+  }
+  
+  String _getIdFieldLabel() {
+    switch (_selectedRole) {
+      case 0:
+        return 'Roll Number';
+      case 1:
+        return 'Employee ID';
+      case 2:
+        return "Child's Roll Number";
+      default:
+        return 'ID';
+    }
+  }
+  
+  String? _validateId(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter ${_getIdFieldLabel().toLowerCase()}';
+    }
+    return null;
+  }
+  
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final authService = AuthService();
+      
+      switch (_selectedRole) {
+        case 0: // Student
+          await authService.loginStudent(_idController.text.trim());
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/payment');
+          }
+          break;
+          
+        case 1: // Teacher
+          await authService.loginTeacher(_idController.text.trim());
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/teacher-dashboard');
+          }
+          break;
+          
+        case 2: // Parent
+          await authService.loginParent(_idController.text.trim());
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/parent-dashboard');
+          }
+          break;
+          
+        default:
+          throw 'Invalid role selected';
+      }
+      
+      Fluttertoast.showToast(msg: 'Logged in as ${_getRoleName()}');
+      
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Login failed: $e',
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -136,54 +227,25 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               const SizedBox(height: 18),
-                              // Username/Email Field
-                              const TextField(
-                                decoration: InputDecoration(
-                                  hintText: 'Username/Email',
-                                  border: UnderlineInputBorder(),
-                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              // Password Field
-                              TextField(
-                                obscureText: _obscurePassword,
-                                decoration: InputDecoration(
-                                  hintText: 'Password',
-                                  border: const UnderlineInputBorder(),
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(_obscurePassword
-                                        ? Icons.visibility_off
-                                        : Icons.visibility),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              // Forgot Password
-                              Row(
-                                children: [
-                                  const Spacer(),
-                                  TextButton(
-                                    onPressed: () {},
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      minimumSize: const Size(0, 0),
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      alignment: Alignment.centerRight,
+                              // ID Field
+                              Form(
+                                key: _formKey,
+                                child: Column(
+                                  children: [
+                                    TextFormField(
+                                      controller: _idController,
+                                      decoration: InputDecoration(
+                                        hintText: 'Enter ${_getIdFieldLabel()}',
+                                        border: const UnderlineInputBorder(),
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                        prefixIcon: const Icon(Icons.person_outline),
+                                      ),
+                                      validator: _validateId,
+                                      enabled: !_isLoading,
                                     ),
-                                    child: const Text(
-                                      'Forgot password?',
-                                      style: TextStyle(
-                                          fontSize: 13, color: Colors.black54),
-                                    ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 24),
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 10),
                               // Login Button
@@ -191,35 +253,31 @@ class _LoginPageState extends State<LoginPage> {
                                 width: double.infinity,
                                 height: 48,
                                 child: ElevatedButton(
-                                  onPressed: () {
-                                    // Navigate based on selected role
-                                    switch (_selectedRole) {
-                                      case 0: // Student
-                                        Navigator.pushReplacementNamed(context, '/payment');
-                                        break;
-                                      case 1: // Teacher
-                                        Navigator.pushReplacementNamed(context, '/teacher-dashboard');
-                                        break;
-                                      case 2: // Parent
-                                        Navigator.pushReplacementNamed(context, '/parent-dashboard');
-                                        break;
-                                    }
-                                  },
+                                  onPressed: _isLoading ? null : _login,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFFFB547),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(24),
                                     ),
                                     elevation: 0,
                                   ),
-                                  child: const Text(
-                                    'Login',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(
+                                          'Login as ${_getRoleName()}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ],
