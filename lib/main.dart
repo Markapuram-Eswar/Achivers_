@@ -1,7 +1,6 @@
 import 'package:achiver_app/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_page.dart';
 import 'screens/welcome_page.dart';
@@ -12,12 +11,6 @@ import 'screens/parent_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint('Error loading .env file: $e');
-  }
 
   try {
     await Firebase.initializeApp(

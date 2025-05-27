@@ -2,11 +2,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_sound/flutter_sound.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:achiver_app/services/gemini_service.dart';
+import 'package:achiver_app/services/doubt_service.dart';
 
 class DoubtsPage extends StatefulWidget {
   const DoubtsPage({super.key});
@@ -17,24 +16,102 @@ class DoubtsPage extends StatefulWidget {
 
 class _DoubtsPageState extends State<DoubtsPage> {
   final TextEditingController _textController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [];
+  List<Map<String, dynamic>> _messages = []; // Changed to non-final to allow reassignment
   final ImagePicker _picker = ImagePicker();
-  final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   final GeminiService _geminiService = GeminiService();
+  late final DoubtService _doubtService;
   bool _isLoading = false;
-  bool _isRecording = false;
+  final ScrollController _scrollController = ScrollController();
+  String? _currentUserId; // Will store the student's roll number
 
   @override
   void initState() {
     super.initState();
-    _recorder.openRecorder();
+    _doubtService = DoubtService();
+    // Get the current user's ID (roll number)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _currentUserId = user.uid; // Or use a field from user data that contains roll number
+      });
+    }
+    _loadPreviousDoubts();
   }
 
   @override
   void dispose() {
-    _recorder.closeRecorder();
     _textController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  Future<void> _loadPreviousDoubts() async {
+    if (_currentUserId == null) return;
+    
+    try {
+      final snapshot = await _doubtService.getStudentDoubts(_currentUserId!).first;
+      if (snapshot.docs.isNotEmpty) {
+        // Convert Firestore docs to message format
+        final loadedMessages = <Map<String, dynamic>>[];
+        
+        for (final doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final message = {
+            'id': doc.id,
+            'type': data['imageUrl'] != null ? 'image' : 'text',
+            'content': data['message'],
+            'response': data['response'],
+            'isUser': true,
+            'timestamp': (data['timestamp'] as Timestamp).toDate(),
+          };
+          loadedMessages.add(message);
+        }
+        
+        if (mounted) {
+          setState(() {
+            _messages = loadedMessages;
+          });
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading previous doubts: $e');
+      }
+    }
+  }
+
+  Future<void> _saveDoubtToDatabase(String message, String response, {String? imageUrl}) async {
+    if (_currentUserId == null) return;
+    
+    try {
+      await _doubtService.saveDoubt(
+        studentRollNumber: _currentUserId!,
+        message: message,
+        imageUrl: imageUrl,
+        response: response,
+        timestamp: DateTime.now(),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error saving doubt: $e');
+      }
+      // Optionally show error to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save your doubt. Please try again.')),
+        );
+      }
+    }
   }
 
   Future<void> _sendText(String text) async {
@@ -44,14 +121,18 @@ class _DoubtsPageState extends State<DoubtsPage> {
       _messages.insert(0, {"type": "text", "content": text, "isUser": true});
       _isLoading = true;
     });
+    _scrollToBottom();
 
     try {
       final response = await _geminiService.generateResponse(text);
-
       setState(() {
-        _messages
-            .insert(0, {"type": "text", "content": response, "isUser": false});
+        _messages.insert(0, {"type": "text", "content": response, "isUser": false});
       });
+      _scrollToBottom();
+      
+      // Save the doubt and response to Firestore
+      await _saveDoubtToDatabase(text, response);
+      
     } catch (e) {
       if (kDebugMode) {
         print('Error sending text: $e');
@@ -60,7 +141,7 @@ class _DoubtsPageState extends State<DoubtsPage> {
         _messages.insert(0, {
           "type": "text",
           "content":
-              "Sorry, I couldn't process your request. Please try again.",
+              "I apologize, but I couldn't process your request. Please try again.",
           "isUser": false
         });
       });
@@ -71,7 +152,10 @@ class _DoubtsPageState extends State<DoubtsPage> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (image == null) return;
 
       setState(() {
@@ -79,17 +163,25 @@ class _DoubtsPageState extends State<DoubtsPage> {
         _messages.insert(
             0, {"type": "image", "content": image.path, "isUser": true});
       });
+      _scrollToBottom();
 
       try {
-        final response = await _geminiService.analyzeImage(
-          image.path,
-          'Please analyze this image and provide a detailed explanation.',
-        );
-
+        final response = await _geminiService.analyzeImage(image.path, '');
         setState(() {
           _messages.insert(
               0, {"type": "text", "content": response, "isUser": false});
         });
+        _scrollToBottom();
+        
+        // Save the image doubt and response to Firestore
+        // Note: In a real app, you'd want to upload the image to Firebase Storage
+        // and save the download URL instead of the local path
+        await _saveDoubtToDatabase(
+          'Image question', 
+          response,
+          imageUrl: image.path,
+        );
+        
       } catch (e) {
         if (kDebugMode) {
           print('Error analyzing image: $e');
@@ -97,7 +189,8 @@ class _DoubtsPageState extends State<DoubtsPage> {
         setState(() {
           _messages.insert(0, {
             "type": "text",
-            "content": "Sorry, I couldn't analyze the image. Please try again.",
+            "content":
+                "I apologize, but I couldn't analyze the image. Please try uploading it again.",
             "isUser": false
           });
         });
@@ -111,44 +204,6 @@ class _DoubtsPageState extends State<DoubtsPage> {
     }
   }
 
-  Future<void> _startRecording() async {
-    final status = await Permission.microphone.request();
-    if (status.isGranted) {
-      final dir = await getApplicationDocumentsDirectory();
-      final path =
-          "${dir.path}/doubt_${DateTime.now().millisecondsSinceEpoch}.aac";
-      await _recorder.startRecorder(toFile: path);
-      setState(() {
-        _isRecording = true;
-      });
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    final path = await _recorder.stopRecorder();
-    setState(() {
-      _isRecording = false;
-    });
-
-    if (path != null) {
-      _messages.add({"type": "audio", "content": path});
-
-      final req = http.MultipartRequest(
-        'POST',
-        Uri.parse('http://your-backend.com/upload'),
-      );
-      req.files.add(await http.MultipartFile.fromPath('file', path));
-      req.fields['type'] = 'audio';
-      req.fields['user_id'] = 'student123';
-
-      final response = await req.send();
-      final res = await http.Response.fromStream(response);
-      if (kDebugMode) {
-        print(res.body);
-      }
-    }
-  }
-
   Widget _buildMessage(Map<String, dynamic> message) {
     final isUser = message['isUser'] == true;
 
@@ -156,19 +211,20 @@ class _DoubtsPageState extends State<DoubtsPage> {
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.85,
+        ),
         decoration: BoxDecoration(
-          color: isUser ? Colors.blue.withValues(alpha: 0.1) : Colors.grey[100],
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 16),
+          color: isUser ? Colors.blue.shade50 : Colors.white,
+          borderRadius: BorderRadius.circular(20).copyWith(
+            bottomRight: Radius.circular(isUser ? 5 : 20),
+            bottomLeft: Radius.circular(isUser ? 20 : 5),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 4,
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 5,
               offset: const Offset(0, 2),
             ),
           ],
@@ -177,56 +233,62 @@ class _DoubtsPageState extends State<DoubtsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  isUser ? Icons.person : Icons.auto_awesome,
-                  color: isUser ? Colors.blue : Colors.amber[700],
-                  size: 20,
+                CircleAvatar(
+                  backgroundColor:
+                      isUser ? Colors.blue.shade100 : Colors.purple.shade100,
+                  radius: 16,
+                  child: Icon(
+                    isUser ? Icons.person : Icons.school,
+                    color:
+                        isUser ? Colors.blue.shade700 : Colors.purple.shade700,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isUser ? 'You' : 'Study Assistant',
+                  isUser ? 'You' : 'Study Buddy',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isUser ? Colors.blue[800] : Colors.grey[800],
+                    color:
+                        isUser ? Colors.blue.shade700 : Colors.purple.shade700,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             message['type'] == 'text'
                 ? SelectableText(
                     message['content'],
                     style: TextStyle(
-                      color: Colors.grey[900],
+                      color: Colors.grey[800],
                       fontSize: 16,
                       height: 1.5,
                     ),
                   )
-                : message['type'] == 'image'
-                    ? Column(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(message['content']),
-                              width: 200,
-                              height: 200,
-                              fit: BoxFit.cover,
-                            ),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade200,
+                            width: 2,
                           ),
-                          if (!isUser) const SizedBox(height: 8),
-                          if (!isUser)
-                            SelectableText(
-                              message['content'] ?? 'Analyzing image...',
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                        ],
-                      )
-                    : const Text(
-                        "Audio messages are not supported yet",
-                        style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            File(message['content']),
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
+                    ],
+                  ),
           ],
         ),
       ),
@@ -236,109 +298,291 @@ class _DoubtsPageState extends State<DoubtsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text("Ask a Doubt",
-            style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          "Study Buddy",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.white,
+        elevation: 2,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Row(
+                    children: [
+                      Icon(Icons.school, color: Colors.purple.shade400),
+                      const SizedBox(width: 8),
+                      const Text('Welcome to Study Buddy!'),
+                    ],
+                  ),
+                  content: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'I\'m your personal AI study assistant! Here\'s how I can help:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 12),
+                      Text('• Ask any academic questions'),
+                      Text('• Upload images of problems or notes'),
+                      Text('• Get step-by-step explanations'),
+                      Text('• Practice with sample questions'),
+                      Text('• Understand complex concepts'),
+                      SizedBox(height: 12),
+                      Text(
+                        'Just type your question or upload an image to get started!',
+                        style: TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      child: const Text('Got it!'),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
-              child: _isLoading && _messages.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
+              child: _messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.school_outlined,
+                            size: 72,
+                            color: Colors.purple.shade200,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Hello! I\'m your Study Buddy!',
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: Colors.purple.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Ask me anything about your studies',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            margin: const EdgeInsets.symmetric(horizontal: 32),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.purple.shade100
+                                      .withValues(alpha: 0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                _buildSuggestion(
+                                  'How do I solve quadratic equations?',
+                                  Icons.functions,
+                                ),
+                                const Divider(),
+                                _buildSuggestion(
+                                  'Explain photosynthesis process',
+                                  Icons.nature,
+                                ),
+                                const Divider(),
+                                _buildSuggestion(
+                                  'What are Newton\'s laws of motion?',
+                                  Icons.speed,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
                   : ListView.builder(
+                      controller: _scrollController,
                       reverse: true,
+                      padding: const EdgeInsets.only(bottom: 8),
                       itemCount: _messages.length,
                       itemBuilder: (_, index) =>
-                          _buildMessage(_messages.reversed.toList()[index]),
+                          _buildMessage(_messages[index]),
                     ),
             ),
-            if (_isLoading && _messages.isNotEmpty)
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            if (_isRecording)
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Text("Recording...",
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.bold)),
+            if (_isLoading)
+              Container(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.purple.shade300,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Thinking...',
+                      style: TextStyle(
+                        color: Colors.purple.shade700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              color: Colors.white,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.image, color: Colors.blueAccent),
-                    onPressed: _pickImage,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.image_outlined),
+                      color: Colors.purple.shade700,
+                      onPressed: _isLoading ? null : _pickImage,
+                      tooltip: 'Upload an image',
+                    ),
                   ),
-                  IconButton(
-                    icon: Icon(_isRecording ? Icons.stop : Icons.mic,
-                        color: Colors.blueAccent),
-                    onPressed: _isRecording ? _stopRecording : _startRecording,
-                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: TextField(
-                        controller: _textController,
-                        enabled: !_isLoading,
-                        decoration: InputDecoration(
-                          hintText:
-                              _isLoading ? "Please wait..." : "Type a doubt...",
-                          border: InputBorder.none,
-                          hintStyle: TextStyle(
-                            color: _isLoading ? Colors.grey[400] : null,
-                          ),
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(
+                          color: Colors.grey.shade200,
+                          width: 1,
                         ),
-                        onSubmitted: _isLoading
-                            ? null
-                            : (value) {
-                                if (value.trim().isNotEmpty) {
-                                  _sendText(value.trim());
-                                  _textController.clear();
-                                }
-                              },
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (!_isLoading)
-                    IconButton(
-                      icon: const Icon(Icons.send, color: Colors.blueAccent),
-                      onPressed: () {
-                        if (_textController.text.trim().isNotEmpty) {
-                          _sendText(_textController.text.trim());
-                          _textController.clear();
-                        }
-                      },
-                    ),
-                  CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white),
-                      onPressed: () {
-                        final text = _textController.text.trim();
-                        if (text.isNotEmpty) {
-                          _sendText(text);
-                          _textController.clear();
-                        }
-                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _textController,
+                              enabled: !_isLoading,
+                              maxLines: null,
+                              keyboardType: TextInputType.multiline,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                hintText: _isLoading
+                                    ? "Please wait..."
+                                    : "Ask your question here...",
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade100,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.send_rounded,
+                                color: Colors.purple.shade700,
+                              ),
+                              onPressed: _isLoading
+                                  ? null
+                                  : () {
+                                      if (_textController.text
+                                          .trim()
+                                          .isNotEmpty) {
+                                        _sendText(_textController.text);
+                                        _textController.clear();
+                                      }
+                                    },
+                              tooltip: 'Send message',
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestion(String text, IconData icon) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          _textController.text = text;
+          _sendText(text);
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: Colors.purple.shade400),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
