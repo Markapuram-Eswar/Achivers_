@@ -47,30 +47,6 @@ class TasksScreenState extends State<TasksScreen> {
     },
   ];
 
-  final List<Map<String, dynamic>> _recentTasks = [
-    {
-      'title': 'Algebra Homework',
-      'subject': 'Mathematics',
-      'dueDate': 'Due Tomorrow',
-      'status': 'In Progress',
-      'color': Colors.blue,
-    },
-    {
-      'title': 'Science Project',
-      'subject': 'Science',
-      'dueDate': 'Due in 2 days',
-      'status': 'Not Started',
-      'color': Colors.green,
-    },
-    {
-      'title': 'Book Report',
-      'subject': 'English',
-      'dueDate': 'Due in 3 days',
-      'status': 'Not Started',
-      'color': Colors.purple,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,7 +60,6 @@ class TasksScreenState extends State<TasksScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header section
             const Text(
               'Your Tasks Overview',
               style: TextStyle(
@@ -98,90 +73,6 @@ class TasksScreenState extends State<TasksScreen> {
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Upcoming tasks section
-            const Text(
-              'Upcoming Tasks',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _recentTasks.take(2).length,
-                itemBuilder: (context, index) {
-                  final item = _recentTasks[index];
-                  return Container(
-                    width: 200,
-                    margin: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: item['color'].withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: item['color'].withOpacity(0.3)),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item['title'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            Text(
-                              item['subject'],
-                              style: TextStyle(
-                                color: item['color'],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              item['dueDate'],
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: item['color'],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                item['status'],
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
               ),
             ),
             const SizedBox(height: 32),
@@ -232,7 +123,7 @@ class TasksScreenState extends State<TasksScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.2),
+              color: Colors.grey.withOpacity(0.2),
               spreadRadius: 2,
               blurRadius: 8,
               offset: const Offset(0, 2),
@@ -335,7 +226,6 @@ class TasksScreenState extends State<TasksScreen> {
   }
 }
 
-// Task detail screen that will be shown when a subject is tapped
 class TaskDetailScreen extends StatelessWidget {
   final String subject;
 

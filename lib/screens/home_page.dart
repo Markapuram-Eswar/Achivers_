@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'profile_page.dart';
-import 'achievements_screen.dart';
 import 'tasks_screen.dart';
 import 'doubts_page.dart';
 import 'reports_zone_page.dart';
@@ -28,7 +27,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late PageController _pageController;
   int _selectedIndex = 0;
 
-  final List<String> _labels = ['Home', 'Classes', 'Achievements', 'Profile'];
+  final List<String> _labels = ['Home', 'Classes', 'Doubts', 'Profile'];
 
   @override
   void initState() {
@@ -169,25 +168,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
-            InkWell(
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Menu not implemented.")),
-                );
-              },
-              child: Container(
-                width: 32,
-                height: 32,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: NetworkImage(
-                        'https://img.icons8.com/ios-filled/50/menu--v1.png'),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
         body: PageView(
@@ -196,7 +176,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             _buildHomePage(context),
             const AttendanceCalendarPage(),
-            const AchievementsScreen(),
+            const DoubtsPage(),
             const ProfilePage(),
           ],
         ),
