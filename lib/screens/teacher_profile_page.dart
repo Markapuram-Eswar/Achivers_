@@ -269,7 +269,6 @@ class _TeacherProfilePageState extends State<TeacherProfilePage> {
         }),
         _buildMenuItem('Edit Profile', Icons.edit),
         _buildMenuItem('Teaching Resources', Icons.book),
-        _buildMenuItem('Settings', Icons.settings),
         _buildMenuItem('Help & Support', Icons.help_outline),
         const SizedBox(height: 10),
         _buildMenuItem(

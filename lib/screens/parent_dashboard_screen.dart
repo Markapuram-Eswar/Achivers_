@@ -6,6 +6,7 @@ import 'contact_teacher_screen.dart';
 import 'parent_profile_page.dart';
 import 'progress_page.dart';
 import 'login_page.dart';
+import 'payment_screen.dart';
 
 class ParentDashboardScreen extends StatelessWidget {
   const ParentDashboardScreen({super.key});
@@ -35,33 +36,6 @@ class ParentDashboardScreen extends StatelessWidget {
                 ),
               );
             },
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onSelected: (value) async {
-              if (value == 'logout') {
-                await AuthService.logout();
-                if (!context.mounted) return;
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                  (route) => false,
-                );
-                Fluttertoast.showToast(msg: 'Logged out successfully');
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.black54),
-                    SizedBox(width: 8),
-                    Text('Logout'),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -181,6 +155,20 @@ class ParentDashboardScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const ProgressPage(),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: _buildActionButton(
+                'Fee\nPayment',
+                Icons.payment,
+                Colors.blue[400]!,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PaymentScreen(),
                   ),
                 ),
               ),

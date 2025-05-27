@@ -36,13 +36,18 @@ class SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _controller.forward();
-
-    // Check if user is already logged in
+    // Start the animation, but don't navigate yet
+    // Navigation will happen in _checkLoginStatus after animation completes
     _checkLoginStatus();
   }
 
   Future<void> _checkLoginStatus() async {
+    // Wait for animation to complete before navigating
+    await _controller.forward().orCancel;
+    await Future.delayed(const Duration(milliseconds: 300)); // Extra buffer time
+    
+    if (!mounted) return;
+    
     final isLoggedIn = await AuthService.isLoggedIn();
     if (!mounted) return;
     
